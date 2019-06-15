@@ -2,6 +2,7 @@ import torch
 import torchvision
 from torch import nn
 from torch import optim
+from torch.nn import init
 import torch.nn.functional as F
 from torch.autograd import Variable
 from torchvision import transforms, utils 
@@ -12,6 +13,12 @@ def same_padding(kernel_size):
         return (kernel_size - 1) // 2
     else:
         return tuple([ (ks - 1) // 2 for ks in kernel_size ])
+
+
+def init_weights(m):
+    classname = m.__class__.__name__
+    if hasattr(m, 'weight') and (classname.find('Conv') != -1 or classname.find('Linear') != -1):
+        init.xavier_normal_(m.weight.data, gain=0.02)
 
 class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding, bias=False):
@@ -44,7 +51,7 @@ class ResidualBlock(nn.Module):
             nn.Conv2d(in_channels, out_channels, kernel_size, padding=padding),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(True),
-            nn.Dropout(0.5),
+            #nn.Dropout(0.5),
             nn.Conv2d(in_channels, out_channels, kernel_size, padding=padding),
             nn.BatchNorm2d(out_channels),
         )
@@ -74,6 +81,9 @@ class Generator(nn.Module):
             nn.Conv2d(dim, out_channels, 7, stride=1, padding=0),
             nn.Tanh()
         )
+        init_weights(self.encoder)
+        init_weights(self.transformer)
+        init_weights(self.decoder)
         
     def forward(self, x):
         out = self.encoder(x)
@@ -110,7 +120,7 @@ class Discriminator(nn.Module):
 
             nn.Conv2d(dim*8, 1, kw, stride=1, padding=1, bias=True),
         )
-        
+        init_weights(self.model)
     def forward(self, x):
         return self.model(x)
     
@@ -122,6 +132,10 @@ class CycleGANLoss(nn.Module):
         self.register_buffer('fake_label', torch.tensor(0.0).cuda())
         self.loss = nn.MSELoss()
     def __call__(self, pred, target_is_real):
+        if target_is_real:
+            return -pred.mean()
+        else:
+            return pred.mean()
         if target_is_real:
             target_tensor = self.real_label
         else:
