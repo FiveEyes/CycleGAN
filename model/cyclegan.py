@@ -56,10 +56,10 @@ class CycleGAN:
         fake_A_D = self.netD_A(fake_A)
         fake_B_D = self.netD_B(fake_B)
         
-        self.loss_D_A = self.D_loss(real_A_D, True) + self.D_loss(fake_A_D, False) + self.D_loss(self.netD_A(self.real_B), False) + self.calculate_gradient_penalty(self.netD_A, self.real_A[i:], fake_A)
+        self.loss_D_A = self.D_loss(real_A_D, True) + self.D_loss(fake_A_D, False) + self.D_loss(self.netD_A(self.real_B), False) #+ self.calculate_gradient_penalty(self.netD_A, self.real_A[i:], fake_A)
         self.loss_D_A.backward(retain_graph=retain_graph)
 
-        self.loss_D_B = self.D_loss(real_B_D, True) + self.D_loss(fake_B_D, False) + self.D_loss(self.netD_B(self.real_A), False) + self.calculate_gradient_penalty(self.netD_B, self.real_B[i:], fake_B)
+        self.loss_D_B = self.D_loss(real_B_D, True) + self.D_loss(fake_B_D, False) + self.D_loss(self.netD_B(self.real_A), False) #+ self.calculate_gradient_penalty(self.netD_B, self.real_B[i:], fake_B)
         self.loss_D_B.backward(retain_graph=retain_graph)
 
         self.loss_D = (self.loss_D_A + self.loss_D_B)

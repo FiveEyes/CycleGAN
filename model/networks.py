@@ -132,10 +132,10 @@ class CycleGANLoss(nn.Module):
         self.register_buffer('fake_label', torch.tensor(0.0).cuda())
         self.loss = nn.MSELoss()
     def __call__(self, pred, target_is_real):
-        if target_is_real:
-            return -pred.mean()
-        else:
-            return pred.mean()
+        #if target_is_real:
+        #    return -pred.mean()
+        #else:
+        #    return pred.mean()
         if target_is_real:
             target_tensor = self.real_label
         else:
