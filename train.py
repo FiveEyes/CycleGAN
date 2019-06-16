@@ -32,10 +32,10 @@ def save_tensor_img(x, path):
 
 test_A = DataLoader(
     image_folder.ImageFolder('datasets/horse2zebra/testA', transform = tfs),
-    batch_size = 1, shuffle=True)
+    batch_size = 1, shuffle=True, num_workers=4)
 test_B = DataLoader(
     image_folder.ImageFolder('datasets/horse2zebra/testB', transform = tfs),
-    batch_size = 1, shuffle=True)
+    batch_size = 1, shuffle=True, num_workers=4)
 
 def gen_test_fake(model):
     print('generating...', end='')
@@ -59,9 +59,9 @@ def gen_test_fake(model):
 
 if __name__ == '__main__':
     dataset_A = image_folder.ImageFolder('datasets/horse2zebra/trainA', transform = tfs)
-    dataloader_A = DataLoader(dataset_A, batch_size = batch_sz, shuffle=True)
+    dataloader_A = DataLoader(dataset_A, batch_size = batch_sz, shuffle=True, num_workers=4)
     dataset_B = image_folder.ImageFolder('datasets/horse2zebra/trainB', transform = tfs)
-    dataloader_B = DataLoader(dataset_A, batch_size = batch_sz, shuffle=True)
+    dataloader_B = DataLoader(dataset_A, batch_size = batch_sz, shuffle=True, num_workers=4)
 
 
     print(len(dataloader_A), len(dataloader_B))

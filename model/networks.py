@@ -5,6 +5,7 @@ from torch import optim
 from torch.nn import init
 import torch.nn.functional as F
 from torch.autograd import Variable
+from torch import autograd
 from torchvision import transforms, utils 
 import os
 
@@ -43,20 +44,20 @@ class ConvTBlock(nn.Module):
         return self.model(x)
 
 class ResidualBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size):
+    def __init__(self, in_channels):
         super(ResidualBlock, self).__init__()
-        padding = same_padding(kernel_size)
-        self.shortcut = nn.Conv2d(in_channels, out_channels, kernel_size=1,padding=0, bias=False)
         self.model = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size, padding=padding),
-            nn.BatchNorm2d(out_channels),
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(in_channels, in_channels, 3, stride=1, padding=0),
+            nn.BatchNorm2d(in_channels),
             nn.ReLU(True),
-            #nn.Dropout(0.5),
-            nn.Conv2d(in_channels, out_channels, kernel_size, padding=padding),
-            nn.BatchNorm2d(out_channels),
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(in_channels, in_channels, 3, stride=1, padding=0),
+            nn.BatchNorm2d(in_channels),
         )
     def forward(self, x):
-        return F.relu(self.shortcut(x) + self.model(x))
+        #return F.relu(self.shortcut(x) + self.model(x))
+        return x + self.model(x)
 
 
 class Generator(nn.Module):
@@ -71,7 +72,7 @@ class Generator(nn.Module):
 
         transformer = []
         for i in range(n_blocks):
-            transformer.append(ResidualBlock(dim * 4, dim * 4, 3))
+            transformer.append(ResidualBlock(dim * 4))
         self.transformer = nn.Sequential(*transformer)
 
         self.decoder = nn.Sequential(
@@ -110,15 +111,15 @@ class Discriminator(nn.Module):
             nn.BatchNorm2d(dim*4),
             nn.LeakyReLU(0.2, True),
 
-            nn.Conv2d(dim*4, dim*8, kw, stride=2, padding=1, bias=False),
+            nn.Conv2d(dim*4, dim*8, kw, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(dim*8),
             nn.LeakyReLU(0.2, True),
 
-            nn.Conv2d(dim*8, dim*8, kw, stride=1, padding=1, bias=False),
-            nn.BatchNorm2d(dim*8),
-            nn.LeakyReLU(0.2, True),
+            #nn.Conv2d(dim*8, dim*8, kw, stride=1, padding=1, bias=False),
+            #nn.BatchNorm2d(dim*8),
+            #nn.LeakyReLU(0.2, True),
 
-            nn.Conv2d(dim*8, 1, kw, stride=1, padding=1, bias=True),
+            nn.Conv2d(dim*8, 1, kw, stride=1, padding=1),
         )
         init_weights(self.model)
     def forward(self, x):
@@ -143,3 +144,27 @@ class CycleGANLoss(nn.Module):
         target_tensor = target_tensor.expand_as(pred)
         #print("pred, target:", pred.shape, target_tensor.shape)
         return self.loss(pred, target_tensor)
+
+def calculate_gradient_penalty(netD, real_images, fake_images):
+    batch_size = real_images.size(0)
+    eta = torch.FloatTensor(batch_size,1,1,1).uniform_(0,1)
+    eta = eta.expand(batch_size, real_images.size(1), real_images.size(2), real_images.size(3)).cuda()
+
+    interpolated = eta * real_images + ((1 - eta) * fake_images)
+    interpolated = interpolated.cuda()
+
+    # define it to calculate gradient
+    interpolated = Variable(interpolated, requires_grad=True)
+
+    # calculate probability of interpolated examples
+    prob_interpolated = netD(interpolated)
+
+    # calculate gradients of probabilities with respect to examples
+    gradients = autograd.grad(outputs=prob_interpolated, inputs=interpolated,
+                            grad_outputs=torch.ones(
+                            prob_interpolated.size()).cuda(),
+                            create_graph=True, retain_graph=True)[0]
+
+    grad_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * 10.0
+    return grad_penalty
+        
