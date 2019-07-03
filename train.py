@@ -2,15 +2,17 @@ from model import cyclegan
 from data import image_folder
 from torch.utils.data import DataLoader
 from torchvision import transforms
+from torch.autograd import Variable
 from PIL import Image
 import numpy as np
 import sys
 
-batch_sz = 4
-test_sz = 10
+batch_sz = 1
+test_sz = 5
 tfs = transforms.Compose([
-    #transforms.Resize((128,128)), 
     transforms.RandomHorizontalFlip(), 
+    transforms.Resize((288,288)), 
+    transforms.RandomCrop(256),
     transforms.ToTensor(), 
     transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
 ])
@@ -81,6 +83,9 @@ if __name__ == '__main__':
         
         for real_A, real_B in zip(dataloader_A, dataloader_B):
             #print(real_A[0].min(), real_A[0].max())
+            real_A = Variable(real_A)
+            real_B = Variable(real_B)
+            
             loss_G, loss_D = model.train_step(real_A.cuda(),real_B.cuda())
             loss_G = loss_G.cpu().detach().numpy()
             loss_D = loss_D.cpu().detach().numpy()
